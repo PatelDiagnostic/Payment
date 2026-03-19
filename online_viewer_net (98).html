@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patel Diagnostic Udaipur - UPI QR</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+            background-color: #f0f2f5; 
+        }
+        .qr-card { 
+            background-color: #ffffff; 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+            text-align: center; 
+            width: 320px; 
+            box-sizing: border-box;
+        }
+        .clinic-name { margin: 0 0 5px 0; color: #d32f2f; font-size: 22px; font-weight: bold; }
+        .clinic-desc { font-size: 14px; color: #555; font-weight: bold; margin-bottom: 5px; }
+        .clinic-contact { font-size: 14px; color: #777; margin-bottom: 15px; }
+        
+        .upi-id { font-weight: bold; color: #555; margin-bottom: 20px; font-size: 14px; }
+        
+        .input-group { margin: 15px 0; }
+        input[type="number"] { 
+            width: 100%; 
+            padding: 12px; 
+            border: 1px solid #ccc; 
+            border-radius: 6px; 
+            font-size: 16px; 
+            box-sizing: border-box; 
+        }
+        
+        /* New style for the fixed amount heading that appears during sharing */
+        .fixed-amount {
+            font-size: 26px;
+            font-weight: bold;
+            color: #28a745;
+            margin: 15px 0;
+            display: none; /* Hidden by default */
+        }
+
+        #qrcode { 
+            margin: 20px auto; 
+            padding: 10px; 
+            border: 2px solid #e0e0e0; 
+            border-radius: 8px; 
+            display: flex; 
+            justify-content: center;
+            background: white; 
+        }
+        button { 
+            color: white; 
+            border: none; 
+            padding: 12px; 
+            width: 100%; 
+            border-radius: 6px; 
+            font-size: 16px; 
+            cursor: pointer; 
+            margin-bottom: 10px; 
+            font-weight: bold;
+        }
+        .generate-btn { background-color: #007bff; }
+        .generate-btn:hover { background-color: #0056b3; }
+        .share-btn { background-color: #28a745; }
+        .share-btn:hover { background-color: #218838; }
+    </style>
+</head>
+<body>
+
+    <div class="qr-card" id="capture-area">
+        <h1 class="clinic-name">Patel Diagnostic Udaipur</h1>
+        <div class="clinic-desc">A Home Blood Collection Service Provider</div>
+        <div class="clinic-contact">Contact - +91 8209746239</div>
+        
+        <div class="upi-id">UPI: sachindingri@oksbi</div>
+        
+        <div class="input-group" id="input-container">
+            <input type="number" id="amount" placeholder="Enter Amount (₹)" min="1">
+        </div>
+        
+        <div id="display-amount" class="fixed-amount"></div>
+        
+        <button class="generate-btn" id="btn-update" onclick="updateQR()">1. Update Amount</button>
+        
+        <div id="qrcode"></div>
+        
+        <button class="share-btn" id="btn-share" onclick="shareQR()">2. Share QR Image</button>
+    </div>
+
+    <script>
+        const upiID = "sachindingri@oksbi";
+        let qrCode;
+
+        window.onload = function() {
+            qrCode = new QRCode(document.getElementById("qrcode"), {
+                text: `upi://pay?pa=${upiID}`,
+                width: 200,
+                height: 200,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        };
+
+        function updateQR() {
+            const amount = document.getElementById("amount").value;
+            let upiString = `upi://pay?pa=${upiID}`;
+            
+            if (amount && amount > 0) {
+                upiString += `&am=${amount}`;
+            }
+            
+            qrCode.makeCode(upiString);
+        }
+
+        async function shareQR() {
+            const captureArea = document.getElementById('capture-area');
+            const btnUpdate = document.getElementById('btn-update');
+            const btnShare = document.getElementById('btn-share');
+            const inputContainer = document.getElementById('input-container');
+            const displayAmount = document.getElementById('display-amount');
+            const amountValue = document.getElementById('amount').value;
+            
+            // 1. Hide the buttons
+            btnUpdate.style.display = 'none';
+            btnShare.style.display = 'none';
+
+            // 2. Hide the input box and show the fixed amount heading if an amount was entered
+            inputContainer.style.display = 'none';
+            if (amountValue && amountValue > 0) {
+                displayAmount.innerText = `Amount: ₹${amountValue}`;
+                displayAmount.style.display = 'block';
+            }
+
+            try {
+                // Take a snapshot of the card with the new layout
+                const canvas = await html2canvas(captureArea, {
+                    backgroundColor: "#ffffff",
+                    scale: 2 
+                });
+                
+                // 3. Revert everything back to normal immediately after the snapshot
+                btnUpdate.style.display = 'block';
+                btnShare.style.display = 'block';
+                inputContainer.style.display = 'block';
+                displayAmount.style.display = 'none';
+
+                canvas.toBlob(async function(blob) {
+                    const file = new File([blob], 'patel-diagnostic-payment.png', { type: 'image/png' });
+                    
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            title: 'Patel Diagnostic Payment',
+                            text: 'Please scan to make your payment.',
+                            files: [file]
+                        });
+                    } else {
+                        const dataUrl = canvas.toDataURL('image/png');
+                        const link = document.createElement('a');
+                        link.href = dataUrl;
+                        link.download = 'patel-diagnostic-payment.png';
+                        link.click();
+                        alert("Image downloaded! Your device doesn't support direct sharing.");
+                    }
+                });
+            } catch (error) {
+                console.error("Error generating shareable image:", error);
+                alert("Sharing failed. Please try again.");
+                
+                // Ensure the interface returns to normal even if sharing fails
+                btnUpdate.style.display = 'block';
+                btnShare.style.display = 'block';
+                inputContainer.style.display = 'block';
+                displayAmount.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
